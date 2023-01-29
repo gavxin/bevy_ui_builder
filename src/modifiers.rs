@@ -64,6 +64,8 @@ impl StyleModifier for JustifyContent {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StylePosition(pub UiRect);
 
 impl StyleModifier for StylePosition {
@@ -72,6 +74,8 @@ impl StyleModifier for StylePosition {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleMargin(pub UiRect);
 
 impl StyleModifier for StyleMargin {
@@ -80,6 +84,8 @@ impl StyleModifier for StyleMargin {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StylePadding(pub UiRect);
 
 impl StyleModifier for StylePadding {
@@ -88,6 +94,8 @@ impl StyleModifier for StylePadding {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleBorder(pub UiRect);
 
 impl StyleModifier for StyleBorder {
@@ -96,6 +104,37 @@ impl StyleModifier for StyleBorder {
     }
 }
 
+macro_rules! impl_for_ui_rect {
+    ($class: ident) => {
+        impl $class {
+            pub fn new(rect: UiRect) -> Self {
+                Self(rect)
+            }
+
+            pub fn all(val: Val) -> Self {
+                Self(UiRect::all(val))
+            }
+
+            pub fn all_px(val: f32) -> Self {
+                Self(UiRect::all(Val::Px(val)))
+            }
+        }
+
+        impl From<UiRect> for $class {
+            fn from(rect: UiRect) -> Self {
+                Self(rect)
+            }
+        }
+    };
+}
+
+impl_for_ui_rect!(StylePosition);
+impl_for_ui_rect!(StyleMargin);
+impl_for_ui_rect!(StylePadding);
+impl_for_ui_rect!(StyleBorder);
+
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleFlexGrow(pub f32);
 
 impl StyleModifier for StyleFlexGrow {
@@ -104,6 +143,8 @@ impl StyleModifier for StyleFlexGrow {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleFlexShrink(pub f32);
 
 impl StyleModifier for StyleFlexShrink {
@@ -112,6 +153,8 @@ impl StyleModifier for StyleFlexShrink {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleFlexBasis(pub Val);
 
 impl StyleModifier for StyleFlexBasis {
@@ -126,6 +169,8 @@ impl StyleModifier for Size {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleSize(pub Size);
 
 impl StyleModifier for StyleSize {
@@ -134,6 +179,8 @@ impl StyleModifier for StyleSize {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleMinSize(pub Size);
 
 impl StyleModifier for StyleMinSize {
@@ -142,6 +189,8 @@ impl StyleModifier for StyleMinSize {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleMaxSize(pub Size);
 
 impl StyleModifier for StyleMaxSize {
@@ -176,12 +225,6 @@ macro_rules! impl_style_size {
                 height: Val::Percent(100.0),
             });
         }
-
-        impl Default for $class {
-            fn default() -> Self {
-                Self::AUTO
-            }
-        }
     };
 }
 
@@ -189,6 +232,8 @@ impl_style_size!(StyleSize);
 impl_style_size!(StyleMinSize);
 impl_style_size!(StyleMaxSize);
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleAspectRatio(pub Option<f32>);
 
 impl StyleModifier for StyleAspectRatio {
@@ -203,6 +248,8 @@ impl StyleModifier for Overflow {
     }
 }
 
+#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
+#[reflect(PartialEq)]
 pub struct StyleCenterChildren;
 
 impl StyleModifier for StyleCenterChildren {

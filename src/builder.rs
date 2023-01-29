@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use bevy::prelude::*;
+use bevy::{ecs::event::Event, prelude::*};
 
 use crate::{buttons::*, modifiers::*};
 
@@ -36,6 +36,18 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
     /// with_* fn will modify last entity
     pub fn set_last(&mut self, e: Entity) -> &mut Self {
         self.last = Some(e);
+        self
+    }
+
+    /// change default font
+    pub fn set_default_font(&mut self, font: Handle<Font>) -> &mut Self {
+        self.default_text_style.font = font;
+        self
+    }
+
+    /// change default text style
+    pub fn set_default_text_style(&mut self, text_style: TextStyle) -> &mut Self {
+        self.default_text_style = text_style;
         self
     }
 
@@ -95,6 +107,30 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
         self
     }
 
+    /// button: add click handler
+    pub fn with_on_button_click(
+        &mut self,
+        handler: impl Fn(&mut Commands, &ButtonClickInfo) + 'static + Send + Sync,
+    ) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(OnButtonClick(Box::new(handler)));
+        self
+    }
+
+    /// button: send event on click
+    /// will overwrite other click handler
+    pub fn with_send_event_click<E: Event + Clone>(&mut self, e: E) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(OnButtonClick(Box::new(
+                move |commands: &mut Commands, _info: &ButtonClickInfo| {
+                    send_event(commands, e.clone());
+                },
+            )));
+        self
+    }
+
     /// change last button mode to toggle mode
     pub fn with_toggle(&mut self, toggle: bool) -> &mut Self {
         self.commands
@@ -124,6 +160,7 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
     }
 
     /// change button background color when state changed
+    /// use with button()
     pub fn with_color_button(&mut self, value: ColorButton) -> &mut Self {
         self.commands
             .entity(self.last())
@@ -208,4 +245,11 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
             .insert(BackgroundColor(color));
         self
     }
+}
+
+pub fn send_event<E: Event>(commands: &mut Commands, e: E) {
+    commands.add(|w: &mut World| {
+        let mut events_resource = w.resource_mut::<Events<_>>();
+        events_resource.send(e);
+    });
 }

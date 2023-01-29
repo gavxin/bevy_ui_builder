@@ -117,6 +117,7 @@ pub struct ProgrammaticClick(pub Entity);
 #[derive(Clone)]
 pub struct ButtonClickInfo {
     pub entity: Entity,
+    pub name: Option<String>,
     pub mouse_button: Option<MouseButton>,
     pub toggle_state: Option<bool>,
 }
@@ -124,21 +125,20 @@ pub struct ButtonClickInfo {
 /// store click handler
 /// optional component
 #[derive(Component)]
-pub struct ButtonClickHandler(
-    pub Box<dyn Fn(&mut Commands, &ButtonClickInfo) + 'static + Send + Sync>,
-);
+pub struct OnButtonClick(pub Box<dyn Fn(&mut Commands, &ButtonClickInfo) + 'static + Send + Sync>);
 
 #[derive(WorldQuery)]
 #[world_query(mutable)]
 pub struct ButtonQuery {
     entity: Entity,
+    name: Option<&'static Name>,
     toggle: Option<&'static mut ToggleButton>,
     action_on_release: Option<&'static ActionOnRelease>,
     mouse_button_mask: Option<&'static MouseButtonMask>,
     toggle_group: Option<&'static ToggleButtonGroup>,
     disabled: &'static Disabled,
     visual_state: &'static mut ButtonVisualState,
-    click_handler: Option<&'static ButtonClickHandler>,
+    on_click: Option<&'static OnButtonClick>,
     internal_state: &'static mut ButtonInternalState,
 }
 
@@ -211,7 +211,7 @@ pub fn button_system(
         }
     }
 
-    // handle click, set visual state
+    // handle click, call click handler
     for (entity, mouse_button, is_press) in pressed_or_released.iter() {
         if let Ok(q) = set.p1().get_mut(*entity) {
             if q.disabled.0 {
@@ -219,22 +219,33 @@ pub fn button_system(
             }
 
             if let Some(mouse_button_mask) = q.mouse_button_mask {
+                // with mask specified, only mouse button in mask work
                 if !mouse_button_mask.0.contains(mouse_button) {
                     continue;
                 }
+            } else if *mouse_button != MouseButton::Left {
+                // with no mask specified, only left mouse click work
+                continue;
             }
 
             if *is_press && q.action_on_release.is_some() {
+                // action on release
                 continue;
             }
 
             if !*is_press && q.action_on_release.is_none() {
+                // action on press down
                 continue;
             }
 
-            // click happens
+            if q.action_on_release.is_some() && !q.internal_state.hovering {
+                // action on release need release inside
+                continue;
+            }
+
             let mut click_info = ButtonClickInfo {
                 entity: q.entity,
+                name: q.name.map(|n| String::from(n.as_str())),
                 mouse_button: Some(*mouse_button),
                 toggle_state: None,
             };
@@ -249,7 +260,7 @@ pub fn button_system(
                 visual_changed.push(q.entity);
             }
 
-            if let Some(handler) = q.click_handler {
+            if let Some(handler) = q.on_click {
                 handler.0(&mut commands, &click_info);
             }
         }
