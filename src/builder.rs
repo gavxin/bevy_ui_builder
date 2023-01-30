@@ -232,7 +232,7 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
     }
 
     /// add Name component
-    /// 
+    ///
     /// bevy_inspector_egui will show name as entity name, easier to find entity
     pub fn with_name(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
         self.commands.entity(self.last()).insert(Name::new(name));

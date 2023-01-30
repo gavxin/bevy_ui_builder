@@ -2,6 +2,11 @@
 name = "bevy_ui_builder"
 version = "0.1.0"
 edition = "2021"
+license = "MIT OR Apache-2.0"
+description = "ui builder library for bevy_ui"
+repository = "https://github.com/gavxin/bevy_ui_builder"
+readme = "README.md"
+categories = ["gui", "game-development"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 

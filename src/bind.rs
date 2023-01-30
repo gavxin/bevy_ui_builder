@@ -97,7 +97,7 @@ pub struct BindRemote<S: Component, T: Component>(pub Vec<BindRemoteItem<S, T>>)
 ///
 /// app.register_bind::<S, T>() is needed
 pub struct BindRemoteItem<S: Component, T: Component> {
-    pub source: Entity,
+    pub target: Entity,
     pub handler: Box<dyn Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync>,
 }
 
@@ -108,7 +108,7 @@ pub fn component_bind_system<S: Component, T: Component>(
 ) {
     for (s, bind_remote) in query_remote.iter_mut() {
         for item in bind_remote.0.iter() {
-            if let Ok(t) = target_query.get_mut(item.source) {
+            if let Ok(t) = target_query.get_mut(item.target) {
                 (item.handler)(&mut commands, s, t);
             }
         }
@@ -147,7 +147,7 @@ pub trait UiBuilderBindExt {
 
     fn with_event_bind<E: Event, T: Component>(
         &mut self,
-        source: Entity,
+        target: Entity,
         handler: impl Fn(&mut Commands, &E, Mut<T>) + 'static + Send + Sync,
     ) -> &mut Self;
 
@@ -245,13 +245,13 @@ impl<'w, 's, 'a, C> UiBuilderBindExt for UiBuilder<'w, 's, 'a, C> {
     /// app.register_data_source::<S>() is needed
     fn with_bind_remote<S: Component, T: Component>(
         &mut self,
-        source: Entity,
+        target: Entity,
         handler: impl Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync,
     ) -> &mut Self {
         self.commands
             .entity(self.last())
             .insert(BindRemote::<S, T>(vec![BindRemoteItem {
-                source,
+                target,
                 handler: Box::new(handler),
             }]));
         self
