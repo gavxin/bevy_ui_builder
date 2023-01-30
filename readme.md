@@ -4,7 +4,7 @@ Simple ui builder, a simple wrapper of bevy_ui, fluent api design.
 
 ## Warning
 
-Under heavy developments, cannot guarantee API stability.
+Under heavy development, cannot guarantee API stability.
 
 ## Features
 
@@ -68,7 +68,13 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 > NOTE: duplicated call will overwrite previous state
 
+For more `StyleModifier` and `TextModifier` , please see [src/modifiers.rs](src/modifiers.rs)
+
 ### button
+
+There is a button [example](examples/buttons.rs)
+
+
 
 #### toggle button
 
@@ -99,23 +105,20 @@ If you need more customize style, you can use `Changed<>` subscribe `ButtonVisua
 
 ### binding
 
-most easy use api is
+- S: data source, component
+- T: modify target, component
+- source entity: has a data source component `S`
+- target entity: has target component `T`
 
-| api                                          | description                                                  |
-| -------------------------------------------- | ------------------------------------------------------------ |
-| `.with_bind_source::<S, T>(source, handler)` | detect `source` entity component `S` change, call `handler` function to change current entity component `T` |
-
-
-
-and others
-
-| api | description |
-| --- | ---- |
-| `.with_on_change::<S>(handler)` | detect current entity component `S` change and call `handler` function |
-| `.with_event_bind::<E, S>(target_entity, handler)` | when event `E` happen, change `target_entity` component `S`, with `handler` |
-| `.with_on_remote_change::<S>(source_entity, handler)` | when `source_entity` component `S` change, call `handler` function |
-| `.with_self_bind::<S, T>(handler)` | when last entity component `S` change, call handler to change current entity component `T` |
-| `.with_bind_remote::<S, T>(target, handler)`          | detect current(last) entity component `S` change, call `handler` to change remote `target` entity component `T`<br /> |
+| api                                                  | description                                                  |
+| ---------------------------------------------------- | ------------------------------------------------------------ |
+| `with_bind_source::<S, T>(source, handler)`          | when remote entity `source` component `S` change, call handler function to modify current entity component `T`. see [example](examples/bind_source.rs) |
+| `with_on_self_change::<S>(handler)`                  | when current entity component `S` change, call handler function. see [example](examples/on_self_change.rs) |
+| `with_event_bind_to_target::<E, T>(target, handler)` | when event E happen, call handler function to modify entity `target` component `T`. see [example](examples/inventory.rs) |
+| `with_on_source_change::<S>(source, handler)`        | when remote entity `source` component `S` change, call handler function. see [example](examples/inventory.rs) |
+| `with_self_bind::<S, T>(handler)`                    | when current entity component `S` change, call handler function to modify current entity component `T`. see [example](examples/self_bind.rs) |
+| `with_bind_to_target::<S, T>(target, handler)`       | when current entity component `S` change, call handler function to modify remote entity `target` component `T`. see [example](examples/bind_to_target.rs) |
+| `with_bind_to_multiple_targets::<S, T>(binds)`       | when current entity component `S` change, call handler function to modify remote entity `target` component `T` |
 
 ## Similar Projects
 
@@ -123,3 +126,8 @@ This library is inspired from following libraries
 
 - https://github.com/Anti-Alias/bevy_ui_dsl
 - https://github.com/TheRawMeatball/ui4
+
+## License
+
+MIT OR Apache-2.0
+
