@@ -64,8 +64,7 @@ impl StyleModifier for JustifyContent {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StylePosition(pub UiRect);
 
 impl StyleModifier for StylePosition {
@@ -74,8 +73,7 @@ impl StyleModifier for StylePosition {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleMargin(pub UiRect);
 
 impl StyleModifier for StyleMargin {
@@ -84,8 +82,7 @@ impl StyleModifier for StyleMargin {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StylePadding(pub UiRect);
 
 impl StyleModifier for StylePadding {
@@ -94,8 +91,7 @@ impl StyleModifier for StylePadding {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleBorder(pub UiRect);
 
 impl StyleModifier for StyleBorder {
@@ -133,8 +129,7 @@ impl_for_ui_rect!(StyleMargin);
 impl_for_ui_rect!(StylePadding);
 impl_for_ui_rect!(StyleBorder);
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleFlexGrow(pub f32);
 
 impl StyleModifier for StyleFlexGrow {
@@ -143,8 +138,7 @@ impl StyleModifier for StyleFlexGrow {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleFlexShrink(pub f32);
 
 impl StyleModifier for StyleFlexShrink {
@@ -153,8 +147,7 @@ impl StyleModifier for StyleFlexShrink {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleFlexBasis(pub Val);
 
 impl StyleModifier for StyleFlexBasis {
@@ -169,8 +162,7 @@ impl StyleModifier for Size {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleSize(pub Size);
 
 impl StyleModifier for StyleSize {
@@ -179,8 +171,7 @@ impl StyleModifier for StyleSize {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleMinSize(pub Size);
 
 impl StyleModifier for StyleMinSize {
@@ -189,8 +180,7 @@ impl StyleModifier for StyleMinSize {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleMaxSize(pub Size);
 
 impl StyleModifier for StyleMaxSize {
@@ -202,6 +192,10 @@ impl StyleModifier for StyleMaxSize {
 macro_rules! impl_style_size {
     ($class: ident) => {
         impl $class {
+            pub fn new(width: Val, height: Val) -> Self {
+                Self(Size::new(width, height))
+            }
+
             pub fn px(width: f32, height: f32) -> Self {
                 Self(Size::new(Val::Px(width), Val::Px(height)))
             }
@@ -225,6 +219,12 @@ macro_rules! impl_style_size {
                 height: Val::Percent(100.0),
             });
         }
+
+        impl From<Size> for $class {
+            fn from(size: Size) -> Self {
+                Self(size)
+            }
+        }
     };
 }
 
@@ -232,8 +232,7 @@ impl_style_size!(StyleSize);
 impl_style_size!(StyleMinSize);
 impl_style_size!(StyleMaxSize);
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleAspectRatio(pub Option<f32>);
 
 impl StyleModifier for StyleAspectRatio {
@@ -248,8 +247,7 @@ impl StyleModifier for Overflow {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Debug, Default, Reflect)]
-#[reflect(PartialEq)]
+#[derive(Copy, Clone, PartialEq, Debug, Default)]
 pub struct StyleCenterChildren;
 
 impl StyleModifier for StyleCenterChildren {
@@ -272,6 +270,15 @@ impl TextModifier for Text {
 impl TextModifier for Vec<TextSection> {
     fn modify(self, text: &mut Text) {
         text.sections = self;
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct TextPushSection(pub TextSection);
+
+impl TextModifier for TextPushSection {
+    fn modify(self, text: &mut Text) {
+        text.sections.push(self.0);
     }
 }
 

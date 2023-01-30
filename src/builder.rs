@@ -1,21 +1,23 @@
 use std::borrow::Cow;
 
-use bevy::{ecs::event::Event, prelude::*};
+use bevy::{ecs::event::Event, prelude::*, ui::widget::ImageMode, utils::HashMap};
 
 use crate::{buttons::*, modifiers::*};
 
+/// UI Builder
 pub struct UiBuilder<'w, 's, 'a, C> {
     pub commands: &'a mut Commands<'w, 's>,
-    pub context: &'a C,
+    pub context: C,
     pub parent: Option<Entity>,
     pub last: Option<Entity>,
     pub default_text_style: TextStyle,
     pub last_text_content: String,
+    pub name_entity_map: HashMap<Cow<'static, str>, Entity>,
 }
 
 impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
     /// create ui builder
-    pub fn new(commands: &'a mut Commands<'w, 's>, context: &'a C) -> Self {
+    pub fn new(commands: &'a mut Commands<'w, 's>, context: C) -> Self {
         Self {
             commands,
             context,
@@ -23,6 +25,7 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
             last: None,
             default_text_style: TextStyle::default(),
             last_text_content: String::new(),
+            name_entity_map: HashMap::default(),
         }
     }
 
@@ -32,10 +35,43 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
         self.last.expect("no last entity")
     }
 
+    /// get last entity as option
+    pub fn get_last(&self) -> Option<Entity> {
+        self.last
+    }
+
     /// set last created entity
     /// with_* fn will modify last entity
     pub fn set_last(&mut self, e: Entity) -> &mut Self {
         self.last = Some(e);
+        self
+    }
+
+    /// get parent
+    pub fn parent(&self) -> Entity {
+        self.parent.expect("no parent entity")
+    }
+
+    /// get parent as option
+    pub fn get_parent(&self) -> Option<Entity> {
+        self.parent
+    }
+
+    /// set parent entity
+    pub fn set_parent(&mut self, e: Entity) -> &mut Self {
+        self.parent = Some(e);
+        self
+    }
+
+    /// assign last entity value to param
+    pub fn pull_last(&mut self, e: &mut Entity) -> &mut Self {
+        *e = self.last();
+        self
+    }
+
+    /// assign last entity value to option param
+    pub fn pull_last_as_option(&mut self, e: &mut Option<Entity>) -> &mut Self {
+        *e = Some(self.last());
         self
     }
 
@@ -75,6 +111,12 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
             })
             .id();
         self.put_new_node(e);
+        self
+    }
+
+    /// change last entity image mode
+    pub fn with_image_mode(&mut self, image_mode: ImageMode) -> &mut Self {
+        self.commands.entity(self.last()).insert(image_mode);
         self
     }
 
@@ -139,6 +181,15 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
         self
     }
 
+    /// toggle mode in specific group, only one button in group can be toggled
+    /// only work with toggle mode
+    pub fn with_toggle_group(&mut self, group_name: impl Into<String>) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(ToggleButtonGroup(group_name.into()));
+        self
+    }
+
     /// change click action on release
     pub fn with_action_on_release(&mut self) -> &mut Self {
         self.commands.entity(self.last()).insert(ActionOnRelease);
@@ -180,27 +231,37 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
         self
     }
 
-    /// assign last entity value to param
-    pub fn get_last(&mut self, e: &mut Entity) -> &mut Self {
-        *e = self.last();
-        self
-    }
-
-    /// assign last entity value to option param
-    pub fn get_last_as_option(&mut self, e: &mut Option<Entity>) -> &mut Self {
-        *e = Some(self.last());
-        self
-    }
-
     /// add Name component
     pub fn with_name(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
         self.commands.entity(self.last()).insert(Name::new(name));
         self
     }
 
+    /// add Name component, and save entity to name_entity_map
+    pub fn with_unique_name(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
+        let name = name.into();
+        let old = self.name_entity_map.insert(name.clone(), self.last());
+        assert!(old.is_none(), "duplicate name: {}", name);
+        self.commands.entity(self.last()).insert(Name::new(name));
+        self
+    }
+
+    pub fn unique_name_entity(&mut self, name: impl Into<Cow<'static, str>>) -> Entity {
+        self.name_entity_map
+            .get(&name.into())
+            .expect("unique name not found")
+            .clone()
+    }
+
     /// insert or overwrite last entity component
     pub fn with_component(&mut self, c: impl Component) -> &mut Self {
         self.commands.entity(self.last()).insert(c);
+        self
+    }
+
+    /// set last entity disabled as true
+    pub fn with_disabled(&mut self, value: bool) -> &mut Self {
+        self.commands.entity(self.last()).insert(Disabled(value));
         self
     }
 
@@ -247,6 +308,7 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
     }
 }
 
+/// helper function for send abitrary event with Commands
 pub fn send_event<E: Event>(commands: &mut Commands, e: E) {
     commands.add(|w: &mut World| {
         let mut events_resource = w.resource_mut::<Events<_>>();

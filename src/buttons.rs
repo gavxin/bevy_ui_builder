@@ -35,15 +35,9 @@ impl MouseButtonMask {
 
 /// toggle buttons with same group will be exclusive toggled
 /// optional component, must use with ToggleButton
-#[derive(Component, Debug, Clone, Reflect)]
-#[reflect(Component, Default)]
-pub struct ToggleButtonGroup(pub Entity);
-
-impl Default for ToggleButtonGroup {
-    fn default() -> Self {
-        Self(Entity::from_raw(u32::MAX))
-    }
-}
+#[derive(Component, Debug, Clone, Default, Reflect, PartialEq, Eq)]
+#[reflect(Component, Default, PartialEq)]
+pub struct ToggleButtonGroup(pub String);
 
 /// when disable button, will not trigger click event
 /// required component
@@ -74,8 +68,44 @@ pub struct ImageButton {
     pub normal: Handle<Image>,
     pub disabled: Handle<Image>,
     pub pressed: Handle<Image>,
-    pub hovered: Handle<Image>,
+    pub normal_hovered: Handle<Image>,
     pub pressed_hovered: Handle<Image>,
+}
+
+impl ImageButton {
+    pub fn normal(normal: Handle<Image>) -> Self {
+        ImageButton {
+            normal: normal.clone(),
+            disabled: normal.clone(),
+            pressed: normal.clone(),
+            normal_hovered: normal.clone(),
+            pressed_hovered: normal.clone(),
+        }
+    }
+
+    pub fn normal_pressed(normal: Handle<Image>, pressed: Handle<Image>) -> Self {
+        ImageButton {
+            normal: normal.clone(),
+            disabled: normal.clone(),
+            pressed: pressed.clone(),
+            normal_hovered: normal.clone(),
+            pressed_hovered: pressed.clone(),
+        }
+    }
+
+    pub fn normal_disabled_pressed(
+        normal: Handle<Image>,
+        disabled: Handle<Image>,
+        pressed: Handle<Image>,
+    ) -> Self {
+        ImageButton {
+            normal: normal.clone(),
+            disabled,
+            pressed: pressed.clone(),
+            normal_hovered: normal.clone(),
+            pressed_hovered: pressed.clone(),
+        }
+    }
 }
 
 #[derive(Component, Debug, Default, Clone, Reflect)]
@@ -114,7 +144,7 @@ pub struct ButtonInternalState {
 pub struct ProgrammaticClick(pub Entity);
 
 /// for click handler info
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct ButtonClickInfo {
     pub entity: Entity,
     pub name: Option<String>,
@@ -152,6 +182,18 @@ pub fn button_system(
             (&ButtonVisualState, &ColorButton, &mut BackgroundColor),
             (Changed<ButtonVisualState>,),
         >,
+        Query<
+            (
+                Entity,
+                Option<&Name>,
+                &mut ToggleButton,
+                &ToggleButtonGroup,
+                Option<&OnButtonClick>,
+            ),
+            (With<ToggleButtonGroup>, With<ToggleButton>),
+        >,
+        Query<ButtonQuery, Changed<ToggleButton>>,
+        Query<ButtonQuery, Changed<Disabled>>,
     )>,
     mut commands: Commands,
     mouse_input: Res<Input<MouseButton>>,
@@ -178,6 +220,7 @@ pub fn button_system(
             }
             Interaction::None => {
                 q.internal_state.hovering = false;
+                // TODO: handle entity remove before mouse leave
                 hovered.remove(&q.entity);
                 visual_changed.push(q.entity);
             }
@@ -212,6 +255,7 @@ pub fn button_system(
     }
 
     // handle click, call click handler
+    let mut toggle_group_changed = SmallVec::<[(String, Entity); 1]>::new();
     for (entity, mouse_button, is_press) in pressed_or_released.iter() {
         if let Ok(q) = set.p1().get_mut(*entity) {
             if q.disabled.0 {
@@ -243,6 +287,13 @@ pub fn button_system(
                 continue;
             }
 
+            if let Some(ref toggle) = q.toggle {
+                if q.toggle_group.is_some() && toggle.toggled {
+                    // already toggled button in toggle group, do nothing
+                    continue;
+                }
+            }
+
             let mut click_info = ButtonClickInfo {
                 entity: q.entity,
                 name: q.name.map(|n| String::from(n.as_str())),
@@ -252,6 +303,10 @@ pub fn button_system(
 
             if let Some(mut toggle) = q.toggle {
                 // toggle button
+                if let Some(ToggleButtonGroup(group_name)) = q.toggle_group {
+                    toggle_group_changed.push((group_name.clone(), q.entity));
+                }
+
                 toggle.toggled = !toggle.toggled;
                 visual_changed.push(q.entity);
                 click_info.toggle_state = Some(toggle.toggled);
@@ -261,15 +316,57 @@ pub fn button_system(
             }
 
             if let Some(handler) = q.on_click {
+                trace!("call click handler, click info:{:?}", click_info);
                 handler.0(&mut commands, &click_info);
             }
         }
+    }
+
+    // handle directly change value of ToggleButton
+    for q in set.p6().iter_mut() {
+        if visual_changed.iter().any(|e| *e == q.entity) {
+            continue;
+        }
+        if q.toggle.unwrap().toggled {
+            if let Some(ToggleButtonGroup(group_name)) = q.toggle_group {
+                toggle_group_changed.push((group_name.clone(), q.entity));
+            }
+        }
+        visual_changed.push(q.entity);
+    }
+
+    // handle toggle group
+    for (entity, name, mut toggle, toggle_group, on_click) in set.p5().iter_mut() {
+        for (group, trigger_entity) in toggle_group_changed.iter() {
+            if entity == *trigger_entity || *group != toggle_group.0 || !toggle.toggled {
+                continue;
+            }
+
+            toggle.toggled = false;
+            visual_changed.push(entity);
+            if let Some(handler) = on_click {
+                let click_info = ButtonClickInfo {
+                    entity: entity,
+                    name: name.map(|n| String::from(n.as_str())),
+                    mouse_button: None,
+                    toggle_state: Some(false),
+                };
+                trace!("call click handler, click info:{:?}", click_info);
+                handler.0(&mut commands, &click_info);
+            }
+        }
+    }
+
+    // handle Disabled component change
+    for q in set.p7().iter_mut() {
+        visual_changed.push(q.entity);
     }
 
     // handle hover changed set visual state
     for entity in visual_changed.iter() {
         if let Ok(mut q) = set.p1().get_mut(*entity) {
             if q.disabled.0 {
+                *q.visual_state = ButtonVisualState::Disabled;
                 continue;
             }
 
@@ -324,7 +421,7 @@ pub fn button_system(
                 ui_image.0 = images.normal.clone().into();
             }
             ButtonVisualState::NormalHovered => {
-                ui_image.0 = images.hovered.clone().into();
+                ui_image.0 = images.normal_hovered.clone().into();
             }
             ButtonVisualState::Pressed => {
                 ui_image.0 = images.pressed.clone().into();
