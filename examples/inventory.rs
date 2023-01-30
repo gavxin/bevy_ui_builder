@@ -5,10 +5,10 @@ fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
         .add_plugin(UiBuilderPlugin)
-        .register_data_source::<Inventory>(true)
-        .register_data_source::<Item>(true)
-        .register_component_bind::<Inventory, Item>()
-        .register_event_bind::<MyEvent, Inventory>()
+        .register_bind_data_source::<Inventory>(true)
+        .register_bind_data_source::<Item>(true)
+        .register_bind_component::<Inventory, Item>()
+        .register_bind_event::<MyEvent, Inventory>()
         .add_startup_system(setup)
         .run();
 }
@@ -60,7 +60,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_name("items")
                 .pull_last(&mut items_entity)
                 .with_style_modifier((StyleCenterChildren, FlexDirection::Column))
-                .with_on_remote_change(
+                .with_on_source_change(
                     inventory_entity,
                     move |commands: &mut Commands, inventory: &Inventory| {
                         commands.entity(items_entity).despawn_descendants();
@@ -98,7 +98,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
                 .with_name("btn")
                 .with_style_modifier((StyleCenterChildren, StyleMargin::all_px(15.0)))
                 .with_send_event_click(MyEvent)
-                .with_event_bind(
+                .with_event_bind_to_target(
                     inventory_entity,
                     |_commands, _ev: &MyEvent, mut inventory: Mut<Inventory>| {
                         info!("button clicked");

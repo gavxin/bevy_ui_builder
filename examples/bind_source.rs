@@ -8,7 +8,7 @@ fn main() {
         //
         // register data component, this will automatically bind (Counter, Text) pair
         //
-        .register_data_source::<Counter>(true)
+        .register_bind_data_source::<Counter>(true)
         .add_startup_system(setup)
         .add_event::<MyClickEvent>()
         .add_system(handle_my_click_event)

@@ -103,8 +103,7 @@ most easy use api is
 
 | api                                          | description                                                  |
 | -------------------------------------------- | ------------------------------------------------------------ |
-| `.with_bind_remote::<S, T>(target, handler)` | detect current(last) entity component `S` change, call `handler` to change remote `target` entity component `T`<br /> |
-| `.with_bind_source::<S, T>(source, handler)` | detect `source` entity component `S` change, call `handler` function to change current(last) entity component `T` |
+| `.with_bind_source::<S, T>(source, handler)` | detect `source` entity component `S` change, call `handler` function to change current entity component `T` |
 
 
 
@@ -116,7 +115,7 @@ and others
 | `.with_event_bind::<E, S>(target_entity, handler)` | when event `E` happen, change `target_entity` component `S`, with `handler` |
 | `.with_on_remote_change::<S>(source_entity, handler)` | when `source_entity` component `S` change, call `handler` function |
 | `.with_self_bind::<S, T>(handler)` | when last entity component `S` change, call handler to change current entity component `T` |
-| `.with` |  |
+| `.with_bind_remote::<S, T>(target, handler)`          | detect current(last) entity component `S` change, call `handler` to change remote `target` entity component `T`<br /> |
 
 ## Similar Projects
 

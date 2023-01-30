@@ -8,7 +8,7 @@ fn main() {
         //
         // register data component, this will automatically bind (Counter, Text) pair
         //
-        .register_data_source::<Counter>(true)
+        .register_bind_data_source::<Counter>(true)
         .add_startup_system(setup)
         .add_event::<MyClickEvent>()
         .add_system(handle_my_click_event)
@@ -63,7 +63,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         //
         // bind remote 'counter-text' entity's Text component
         //
-        .with_bind_remote(
+        .with_bind_to_target(
             counter_text_entity,
             |_, counter: &Counter, mut text: Mut<Text>| {
                 text.sections[0].value = format!("current counter is {}", counter.val);

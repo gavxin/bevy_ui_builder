@@ -10,7 +10,7 @@ fn main() {
         }))
         .add_plugin(WorldInspectorPlugin)
         .add_plugin(UiBuilderPlugin)
-        .register_data_source::<Counter>(true)
+        .register_bind_data_source::<Counter>(true)
         .add_startup_system(setup)
         .add_event::<MyClickEvent>()
         .add_system(handle_my_click_event)
@@ -42,7 +42,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         //
         // this example present how to use on_change
         //
-        .with_on_change(|_commands, counter: &Counter| {
+        .with_on_self_change(|_commands, counter: &Counter| {
             //
             // when Counter component change, this callback will be called
             //
