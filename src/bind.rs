@@ -1,210 +1,328 @@
 use bevy::{
+    ecs::event::Event,
     prelude::*,
     ui::{widget::ImageMode, FocusPolicy},
 };
 
 use crate::builder::UiBuilder;
 
-pub trait Bindable: 'static + Send + Sync {}
-impl<T: 'static + Send + Sync> Bindable for T {}
-
-/// data source, change this component will invoke bounded handler
-#[derive(Component)]
-pub struct Source<T: Bindable>(pub T);
-
-/// add to same entity which has Source<T>
+/// detect changes of the S component and call the callback
+/// add this component to same entity which has S component
 ///
-/// must call app.add_bind_source::<T>() to register T as bindable
+/// app.register_data_source::<S>() is needed
 #[derive(Component)]
-pub struct OnSourceUpdate<T: Bindable>(pub Box<dyn Fn(&mut Commands, &T) + 'static + Send + Sync>);
+pub struct OnChange<S: Component>(pub Box<dyn Fn(&mut Commands, &S) + 'static + Send + Sync>);
 
-/// bind text content to data source Source<T>, when source changes, invoke handler function
-/// and handler function result will be set to Text first section value
-#[derive(Component)]
-pub struct BindTextContent<T: Bindable> {
-    pub source: Entity,
-    pub handler: Box<dyn Fn(&T, &String) -> Option<String> + 'static + Send + Sync>,
-}
-
-/// works for ui components only
-#[derive(Component)]
-pub struct BindUiComponent<T: Bindable, C: Component> {
-    pub source: Entity,
-    pub handler: Box<dyn Fn(&T, &C) -> Option<C> + 'static + Send + Sync>,
-}
-
-/// bind child source to parent source
-/// require same entity has Source<Child>
-///
-/// must call app.add_bind_source_relation::<Parent, Child>() before use
-#[derive(Component)]
-pub struct BindSource<Parent: Bindable, Child: Bindable> {
-    pub source: Entity,
-    pub handler: Box<dyn Fn(&mut Commands, &Parent, &mut Child) + 'static + Send + Sync>,
-}
-
-/// bind C component to data source Source<T>, when source changes, invoke handler function
-/// require same entity has component C
-///
-/// must call app.add_bind_component::<T, C>()
-#[derive(Component)]
-pub struct BindComponent<T: Bindable, C: Component> {
-    pub source: Entity,
-    pub handler: Box<dyn Fn(&mut Commands, &T, &mut C) + 'static + Send + Sync>,
-}
-
-pub fn bind_system<T: Bindable>(
+pub fn on_change_system<S: Component>(
     mut commands: Commands,
-    mut query: Query<(Entity, &Source<T>, Option<&OnSourceUpdate<T>>), Changed<Source<T>>>,
-    mut bind_text_content_query: Query<
-        (&BindTextContent<T>, &mut Text),
-        Without<BindUiComponent<T, Text>>,
-    >,
-    mut style_query: Query<(Entity, &mut Style, &BindUiComponent<T, Style>)>,
-    mut background_color_query: Query<(
-        Entity,
-        &mut BackgroundColor,
-        &BindUiComponent<T, BackgroundColor>,
-    )>,
-    mut focus_policy_query: Query<(Entity, &mut FocusPolicy, &BindUiComponent<T, FocusPolicy>)>,
-    mut visibility_query: Query<(Entity, &mut Visibility, &BindUiComponent<T, Visibility>)>,
-    mut z_index_query: Query<(Entity, &mut ZIndex, &BindUiComponent<T, ZIndex>)>,
-    mut image_mode_query: Query<(Entity, &mut ImageMode, &BindUiComponent<T, ImageMode>)>,
-    mut image_query: Query<(Entity, &mut UiImage, &BindUiComponent<T, UiImage>)>,
-    mut text_query: Query<(Entity, &mut Text, &BindUiComponent<T, Text>)>,
+    mut query: Query<(&S, &OnChange<S>), Changed<S>>,
 ) {
-    for (source_entity, source, on_update) in query.iter_mut() {
-        if let Some(on_update) = on_update {
-            (on_update.0)(&mut commands, &source.0);
-        }
+    for (s, on_change) in query.iter_mut() {
+        (on_change.0)(&mut commands, s);
+    }
+}
 
-        for (bind_text_content, mut text) in bind_text_content_query.iter_mut() {
-            if bind_text_content.source != source_entity || text.sections.len() == 0 {
-                continue;
-            }
-            let new_value = (bind_text_content.handler)(&source.0, &text.sections[0].value);
-            if let Some(val) = new_value {
-                if val != text.sections[0].value {
-                    text.sections[0].value = val;
-                }
-            }
-        }
+#[derive(Component)]
+pub struct EventBind<E: Event, T: Component> {
+    pub target: Entity,
+    pub handler: Box<dyn Fn(&mut Commands, &E, Mut<T>) + 'static + Send + Sync>,
+}
 
-        for (_entity, mut style, bind) in style_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &style) {
-                    *style = val;
-                }
-            }
-        }
-
-        for (_entity, mut background_color, bind) in background_color_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &background_color) {
-                    *background_color = val;
-                }
-            }
-        }
-
-        for (_entity, mut focus_policy, bind) in focus_policy_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &focus_policy) {
-                    *focus_policy = val;
-                }
-            }
-        }
-
-        for (_entity, mut visibility, bind) in visibility_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &visibility) {
-                    *visibility = val;
-                }
-            }
-        }
-
-        for (_entity, mut z_index, bind) in z_index_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &z_index) {
-                    *z_index = val;
-                }
-            }
-        }
-
-        for (_entity, mut image_mode, bind) in image_mode_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &image_mode) {
-                    *image_mode = val;
-                }
-            }
-        }
-
-        for (_entity, mut image, bind) in image_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &image) {
-                    *image = val;
-                }
-            }
-        }
-
-        for (_entity, mut text, bind) in text_query.iter_mut() {
-            if bind.source == source_entity {
-                if let Some(val) = (bind.handler)(&source.0, &text) {
-                    *text = val;
+pub fn event_bind_system<E: Event, T: Component>(
+    mut commands: Commands,
+    mut event_reader: EventReader<E>,
+    event_bind_query: Query<&EventBind<E, T>>,
+    mut target_query: Query<(Entity, &mut T)>,
+) {
+    for ev in event_reader.iter() {
+        for event_bind in event_bind_query.iter() {
+            for (target_entity, t) in target_query.iter_mut() {
+                if event_bind.target == target_entity {
+                    (event_bind.handler)(&mut commands, ev, t);
                 }
             }
         }
     }
 }
 
-pub fn bind_parent_child_system<Parent: Bindable, Child: Bindable>(
+/// detect changes of the remote entity's S component
+///
+/// app.register_data_source::<S>() is needed
+#[derive(Component)]
+pub struct OnRemoteChange<S: Component> {
+    pub source: Entity,
+    pub handler: Box<dyn Fn(&mut Commands, &S) + 'static + Send + Sync>,
+}
+
+pub fn on_remote_change_system<S: Component>(
     mut commands: Commands,
-    mut query: Query<(Entity, &Source<Parent>), Changed<Source<Parent>>>,
-    mut child_query: Query<(&mut Source<Child>, &BindSource<Parent, Child>)>,
+    target_query: Query<(Entity, &S), Changed<S>>,
+    mut query: Query<&OnRemoteChange<S>>,
 ) {
-    for (parent_entity, parent_source) in query.iter_mut() {
-        for (mut child_source, bind) in child_query.iter_mut() {
-            if bind.source == parent_entity {
-                (bind.handler)(&mut commands, &parent_source.0, &mut child_source.0);
+    for (source_entity, s) in target_query.iter() {
+        for on_remote_change in query.iter_mut() {
+            if on_remote_change.source == source_entity {
+                (on_remote_change.handler)(&mut commands, s);
             }
         }
     }
 }
 
-pub fn bind_generic_component<T: Bindable, C: Component>(
+/// when S component change, call handler to change T component
+///
+/// app.register_bind::<S, T>() is needed
+#[derive(Component)]
+pub struct SelfBind<S: Component, T: Component>(
+    pub Box<dyn Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync>,
+);
+
+pub fn self_bind_system<S: Component, T: Component>(
     mut commands: Commands,
-    mut query: Query<(Entity, &Source<T>), Changed<Source<T>>>,
-    mut component_query: Query<(&mut C, &BindComponent<T, C>)>,
+    mut query: Query<(&S, &SelfBind<S, T>, &mut T), Changed<S>>,
 ) {
-    for (source_entity, source) in query.iter_mut() {
-        for (mut component, bind) in component_query.iter_mut() {
-            if bind.source == source_entity {
-                (bind.handler)(&mut commands, &source.0, &mut component);
+    for (s, self_bind, t) in query.iter_mut() {
+        (self_bind.0)(&mut commands, s, t);
+    }
+}
+
+/// detect changes of the S component and change T component
+/// add this component to same entity which has S and T component
+///
+/// app.register_bind::<S, T>() is needed
+#[derive(Component)]
+pub struct BindRemote<S: Component, T: Component>(pub Vec<BindRemoteItem<S, T>>);
+
+/// detect changes of the S component and change remote entity's T component
+/// add this component to same entity which has S component
+///
+/// app.register_bind::<S, T>() is needed
+pub struct BindRemoteItem<S: Component, T: Component> {
+    pub source: Entity,
+    pub handler: Box<dyn Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync>,
+}
+
+pub fn component_bind_system<S: Component, T: Component>(
+    mut commands: Commands,
+    mut query_remote: Query<(&S, &BindRemote<S, T>), Changed<S>>,
+    mut target_query: Query<&mut T>,
+) {
+    for (s, bind_remote) in query_remote.iter_mut() {
+        for item in bind_remote.0.iter() {
+            if let Ok(t) = target_query.get_mut(item.source) {
+                (item.handler)(&mut commands, s, t);
+            }
+        }
+    }
+}
+
+/// detect changes of remote source entity's S component and call handler
+/// add this component to same entity which has T component
+///
+/// app.register_bind::<S, T>() is needed
+#[derive(Component)]
+pub struct BindSource<S: Component, T: Component> {
+    pub source_entity: Entity,
+    pub handler: Box<dyn Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync>,
+}
+
+pub fn bind_source_system<S: Component, T: Component>(
+    mut commands: Commands,
+    mut source_query: Query<(Entity, &S), Changed<S>>,
+    mut target_query: Query<(&BindSource<S, T>, &mut T)>,
+) {
+    for (source_entity, s) in source_query.iter_mut() {
+        for (bind_source, t) in target_query.iter_mut() {
+            if bind_source.source_entity == source_entity {
+                (bind_source.handler)(&mut commands, s, t);
             }
         }
     }
 }
 
 pub trait UiBuilderBindExt {
-    fn with_source<T: Bindable>(&mut self, data: T) -> &mut Self;
-    fn with_on_source_update<T: Bindable>(
+    fn with_on_change<S: Component>(
         &mut self,
-        handler: impl Fn(&mut Commands, &T) + 'static + Send + Sync,
+        handler: impl Fn(&mut Commands, &S) + 'static + Send + Sync,
+    ) -> &mut Self;
+
+    fn with_event_bind<E: Event, T: Component>(
+        &mut self,
+        source: Entity,
+        handler: impl Fn(&mut Commands, &E, Mut<T>) + 'static + Send + Sync,
+    ) -> &mut Self;
+
+    fn with_on_remote_change<S: Component>(
+        &mut self,
+        source: Entity,
+        handler: impl Fn(&mut Commands, &S) + 'static + Send + Sync,
+    ) -> &mut Self;
+
+    fn with_self_bind<S: Component, T: Component>(
+        &mut self,
+        handler: impl Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync,
+    ) -> &mut Self;
+
+    fn with_bind_remote<S: Component, T: Component>(
+        &mut self,
+        source: Entity,
+        handler: impl Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync,
+    ) -> &mut Self;
+
+    fn with_bind_multiple_remote<S: Component, T: Component>(
+        &mut self,
+        binds: Vec<BindRemoteItem<S, T>>,
+    ) -> &mut Self;
+
+    fn with_bind_source<S: Component, T: Component>(
+        &mut self,
+        source: Entity,
+        handler: impl Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync,
     ) -> &mut Self;
 }
 
 impl<'w, 's, 'a, C> UiBuilderBindExt for UiBuilder<'w, 's, 'a, C> {
-    fn with_source<T: Bindable>(&mut self, data: T) -> &mut Self {
-        self.commands.entity(self.last()).insert(Source::<T>(data));
-        self
-    }
-
-    fn with_on_source_update<T: Bindable>(
+    /// call handler function when last entity's S component change
+    /// last entity has S component
+    ///
+    /// app.register_data_source::<S>() is needed
+    fn with_on_change<S: Component>(
         &mut self,
-        handler: impl Fn(&mut Commands, &T) + 'static + Send + Sync,
+        handler: impl Fn(&mut Commands, &S) + 'static + Send + Sync,
     ) -> &mut Self {
         self.commands
             .entity(self.last())
-            .insert(OnSourceUpdate::<T>(Box::new(handler)));
+            .insert(OnChange::<S>(Box::new(handler)));
+        self
+    }
+
+    /// when E event happen, call handler function
+    fn with_event_bind<E: Event, T: Component>(
+        &mut self,
+        target: Entity,
+        handler: impl Fn(&mut Commands, &E, Mut<T>) + 'static + Send + Sync,
+    ) -> &mut Self {
+        self.commands.entity(self.last()).insert(EventBind::<E, T> {
+            target,
+            handler: Box::new(handler),
+        });
+        self
+    }
+
+    /// call handler function when remote entity's S component change
+    ///
+    /// app.register_data_source::<S>() is needed
+    fn with_on_remote_change<S: Component>(
+        &mut self,
+        source: Entity,
+        handler: impl Fn(&mut Commands, &S) + 'static + Send + Sync,
+    ) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(OnRemoteChange::<S> {
+                source,
+                handler: Box::new(handler),
+            });
+        self
+    }
+
+    /// last entity has S and T component, S is data source,
+    /// when S change, will call handler to change T component
+    ///
+    /// app.register_data_source::<S>() is needed
+    fn with_self_bind<S: Component, T: Component>(
+        &mut self,
+        handler: impl Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync,
+    ) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(SelfBind::<S, T>(Box::new(handler)));
+        self
+    }
+
+    /// last entity has S and the other remote entity has T component,
+    /// when S change, will call handler to change remote entity's T component
+    ///
+    /// app.register_data_source::<S>() is needed
+    fn with_bind_remote<S: Component, T: Component>(
+        &mut self,
+        source: Entity,
+        handler: impl Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync,
+    ) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(BindRemote::<S, T>(vec![BindRemoteItem {
+                source,
+                handler: Box::new(handler),
+            }]));
+        self
+    }
+
+    /// multiple remote entity version of with_bind_remote
+    fn with_bind_multiple_remote<S: Component, T: Component>(
+        &mut self,
+        binds: Vec<BindRemoteItem<S, T>>,
+    ) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(BindRemote::<S, T>(binds));
+        self
+    }
+
+    /// last entity has T component, need react changes of data source entity's S component
+    ///
+    /// app.register_data_source::<S>() is needed
+    fn with_bind_source<S: Component, T: Component>(
+        &mut self,
+        source: Entity,
+        handler: impl Fn(&mut Commands, &S, Mut<T>) + 'static + Send + Sync,
+    ) -> &mut Self {
+        self.commands
+            .entity(self.last())
+            .insert(BindSource::<S, T> {
+                source_entity: source,
+                handler: Box::new(handler),
+            });
+        self
+    }
+}
+
+pub trait AppBindExt {
+    fn register_component_bind<S: Component, T: Component>(&mut self) -> &mut Self;
+    fn register_event_bind<E: Event, T: Component>(&mut self) -> &mut Self;
+    fn register_data_source<S: Component>(&mut self, with_ui: bool) -> &mut Self;
+}
+
+impl AppBindExt for App {
+    /// register bind (S, T), when S change, can effect T
+    fn register_component_bind<S: Component, T: Component>(&mut self) -> &mut Self {
+        self.add_system(self_bind_system::<S, T>);
+        self.add_system(component_bind_system::<S, T>);
+        self.add_system(bind_source_system::<S, T>);
+        self
+    }
+
+    /// register bind (E, T), when E event happen, can effect T
+    fn register_event_bind<E: Event, T: Component>(&mut self) -> &mut Self {
+        self.add_event::<E>();
+        self.add_system(event_bind_system::<E, T>);
+        self
+    }
+
+    /// register data source component only
+    fn register_data_source<S: Component>(&mut self, with_ui: bool) -> &mut Self {
+        self.add_system(on_change_system::<S>);
+        self.add_system(on_remote_change_system::<S>);
+
+        if with_ui {
+            self.register_component_bind::<S, Style>();
+            self.register_component_bind::<S, BackgroundColor>();
+            self.register_component_bind::<S, FocusPolicy>();
+            self.register_component_bind::<S, Visibility>();
+            self.register_component_bind::<S, ZIndex>();
+            self.register_component_bind::<S, ImageMode>();
+            self.register_component_bind::<S, UiImage>();
+            self.register_component_bind::<S, Text>();
+        }
         self
     }
 }

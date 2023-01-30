@@ -10,14 +10,20 @@ fn main() {
         }))
         .add_plugin(WorldInspectorPlugin)
         .add_plugin(UiBuilderPlugin)
-        .add_bind_source::<Counter>()
+        .register_data_source::<Counter>(true)
         .add_startup_system(setup)
+        .add_event::<MyClickEvent>()
+        .add_system(handle_my_click_event)
         .run();
 }
 
+#[derive(Component)]
 pub struct Counter {
     pub val: i32,
 }
+
+#[derive(Clone)]
+pub struct MyClickEvent;
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn(Camera2dBundle::default());
@@ -30,37 +36,41 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     });
 
     b.node()
-        .with_unique_name("ui-root")
+        .with_name("ui-root")
         .with_style_modifier((StyleSize::FULL, StyleCenterChildren))
-        .with_source(Counter { val: 0 })
+        .with_component(Counter { val: 0 })
+        //
+        // this example present how to use on_change
+        //
+        .with_on_change(|_commands, counter: &Counter| {
+            //
+            // when Counter component change, this callback will be called
+            //
+            info!("current counter is {}", counter.val);
+        })
         .with_children(|b| {
-            b.text("?").with_unique_name("counter-label");
+            b.text("please see terminal output");
             b.button()
-                .with_unique_name("add-counter-button")
+                .with_name("add-counter-button")
                 .with_style_modifier((
                     StyleSize::px(30., 30.),
                     StyleMargin::all_px(5.),
                     StyleCenterChildren,
                 ))
+                .with_send_event_click(MyClickEvent)
                 .with_children(|b| {
                     b.text("+");
                 });
-            b.button()
-                .with_unique_name("sub-counter-button")
-                .with_style_modifier((
-                    StyleSize::px(30., 30.),
-                    StyleMargin::all_px(5.),
-                    StyleCenterChildren,
-                ))
-                .with_children(|b| {
-                    b.text("-");
-                });
-            b.text("Counter value is ?")
-                .with_unique_name("counter-msg-label");
-        })
-        .with_on_source_update(|commands, counter: &Counter| {
-            // commands
-            //     .entity(b.unique_name_entity("counter-label"))
-            //     .insert(Text::from_section("1", TextStyle::default()));
         });
+}
+
+fn handle_my_click_event(
+    mut event_reader: EventReader<MyClickEvent>,
+    mut query: Query<&mut Counter>,
+) {
+    for _ in event_reader.iter() {
+        for mut counter in query.iter_mut() {
+            counter.val += 1;
+        }
+    }
 }

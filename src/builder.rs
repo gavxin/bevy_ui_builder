@@ -232,12 +232,15 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
     }
 
     /// add Name component
+    /// 
+    /// bevy_inspector_egui will show name as entity name, easier to find entity
     pub fn with_name(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
         self.commands.entity(self.last()).insert(Name::new(name));
         self
     }
 
-    /// add Name component, and save entity to name_entity_map
+    /// add Name component
+    /// save entity to name_entity_map for later use get_entity_with_unique_name()
     pub fn with_unique_name(&mut self, name: impl Into<Cow<'static, str>>) -> &mut Self {
         let name = name.into();
         let old = self.name_entity_map.insert(name.clone(), self.last());
@@ -246,7 +249,8 @@ impl<'w, 's, 'a, C> UiBuilder<'w, 's, 'a, C> {
         self
     }
 
-    pub fn unique_name_entity(&mut self, name: impl Into<Cow<'static, str>>) -> Entity {
+    /// get entity by unique name
+    pub fn get_entity_with_unique_name(&mut self, name: impl Into<Cow<'static, str>>) -> Entity {
         self.name_entity_map
             .get(&name.into())
             .expect("unique name not found")
