@@ -1,4 +1,4 @@
-# bevy ui builder
+# Bevy UI Builder
 
 Simple ui builder, a simple wrapper of bevy_ui, fluent api design.
 
@@ -16,7 +16,7 @@ Under heavy development, cannot guarantee API stability.
 
 ## Basics
 
-### construct ui hierarchy
+### Construct ui hierarchy
 
 before start, you need to know about bevy_ui 4 basic ui elements
 
@@ -47,7 +47,6 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         .with_children(|b| {
             // create image element
             b.image(asset_server.load("image/file.png"));
-
             // create button element
             b.button()
                 .with_children(|b| {
@@ -59,7 +58,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 }
 ```
 
-### modify style
+### Modify style
 
 - change `Style` component with `.with_style_modifiers(...)`
 - change `Text` component with `.with_text_modifier(...)`
@@ -70,23 +69,23 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
 
 For more `StyleModifier` and `TextModifier` , please see [src/modifiers.rs](src/modifiers.rs)
 
-### button
+### Buttons
 
 There is a button [example](examples/buttons.rs)
 
 
 
-#### toggle button
+#### Toggle Button
 
 - toggle button: `.with_toggle(false)`
 - toggle button with toggle group: `.with_toggle(false).with_toggle_group("group_name")`
 
-#### how click action happen
+#### Click Action
 
 - `.with_action_on_release()`: action performed on mouse button release inside
 - `.with_mouse_button_mask(...)`: react on additional mouse right / middle button, or can disable default left mouse button
 
-#### how button looks
+#### Button Visual
 
 every button has following visual states,
 
@@ -103,7 +102,7 @@ library provide following two ways
 
 If you need more customize style, you can use `Changed<>` subscribe `ButtonVisualState` component changes, and work on your styles.
 
-### binding
+### Data Binding
 
 - S: data source, component
 - T: modify target, component
@@ -119,6 +118,12 @@ If you need more customize style, you can use `Changed<>` subscribe `ButtonVisua
 | `with_self_bind::<S, T>(handler)`                    | when current entity component `S` change, call handler function to modify current entity component `T`. see [example](examples/self_bind.rs) |
 | `with_bind_to_target::<S, T>(target, handler)`       | when current entity component `S` change, call handler function to modify remote entity `target` component `T`. see [example](examples/bind_to_target.rs) |
 | `with_bind_to_multiple_targets::<S, T>(binds)`       | when current entity component `S` change, call handler function to modify remote entity `target` component `T` |
+
+## Compatible bevy version
+
+| bevy | bevy_ui_builder |
+| ---- | --------------- |
+| 0.9  | 0.1             |
 
 ## Similar Projects
 

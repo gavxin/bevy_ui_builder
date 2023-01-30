@@ -7,7 +7,9 @@ description = "ui builder library for bevy_ui"
 homepage = "https://github.com/gavxin/bevy_ui_builder"
 repository = "https://github.com/gavxin/bevy_ui_builder"
 readme = "README.md"
+keywords = ["bevy", "bevy_ui"]
 categories = ["gui", "game-development"]
+exclude = ["/assets", "/examples"]
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
