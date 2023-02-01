@@ -211,6 +211,7 @@ pub fn button_system(
                     q.internal_state.pressing = Some(MouseButton::Left);
                     pressed_mouse_entity.insert(MouseButton::Left, q.entity);
                     pressed_or_released.push((q.entity, MouseButton::Left, true));
+                    visual_changed.push(q.entity);
                 }
             }
             Interaction::Hovered => {

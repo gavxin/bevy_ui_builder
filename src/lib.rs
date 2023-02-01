@@ -1,7 +1,10 @@
-mod bind;
-mod builder;
-mod buttons;
-mod modifiers;
+#![doc = include_str!("../README.md")]
+
+pub mod bind;
+pub mod builder;
+pub mod buttons;
+pub mod helpers;
+pub mod modifiers;
 pub mod prelude;
 
 use bevy::prelude::*;
