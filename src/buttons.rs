@@ -83,6 +83,16 @@ impl ImageButton {
         }
     }
 
+    pub fn normal_hovered(normal: Handle<Image>, hovered: Handle<Image>) -> Self {
+        ImageButton {
+            normal: normal.clone(),
+            disabled: normal.clone(),
+            pressed: normal.clone(),
+            normal_hovered: hovered.clone(),
+            pressed_hovered: normal.clone(),
+        }
+    }
+
     pub fn normal_pressed(normal: Handle<Image>, pressed: Handle<Image>) -> Self {
         ImageButton {
             normal: normal.clone(),

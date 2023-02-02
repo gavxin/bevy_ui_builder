@@ -5,6 +5,8 @@ pub trait SizeTrait {
     fn px(width: f32, height: f32) -> Self;
     fn percent(width: f32, height: f32) -> Self;
     fn from_vec2(vec: Vec2) -> Self;
+    fn width_px_auto(val: f32) -> Self;
+    fn height_px_auto(val: f32) -> Self;
 }
 
 impl SizeTrait for Size {
@@ -20,5 +22,11 @@ impl SizeTrait for Size {
     }
     fn from_vec2(vec: Vec2) -> Self {
         Size::new(Val::Px(vec.x), Val::Px(vec.y))
+    }
+    fn width_px_auto(val: f32) -> Self {
+        Size::new(Val::Px(val), Val::Auto)
+    }
+    fn height_px_auto(val: f32) -> Self {
+        Size::new(Val::Auto, Val::Px(val))
     }
 }

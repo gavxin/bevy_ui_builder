@@ -114,6 +114,30 @@ macro_rules! impl_for_ui_rect {
             pub fn all_px(val: f32) -> Self {
                 Self(UiRect::all(Val::Px(val)))
             }
+
+            pub fn horizontal_px(val: f32) -> Self {
+                Self(UiRect::horizontal(Val::Px(val)))
+            }
+
+            pub fn vertical_px(val: f32) -> Self {
+                Self(UiRect::vertical(Val::Px(val)))
+            }
+
+            pub fn left_px(val: f32) -> Self {
+                Self(UiRect::left(Val::Px(val)))
+            }
+
+            pub fn right_px(val: f32) -> Self {
+                Self(UiRect::right(Val::Px(val)))
+            }
+
+            pub fn top_px(val: f32) -> Self {
+                Self(UiRect::top(Val::Px(val)))
+            }
+
+            pub fn bottom_px(val: f32) -> Self {
+                Self(UiRect::bottom(Val::Px(val)))
+            }
         }
 
         impl From<UiRect> for $class {
